@@ -11,12 +11,35 @@ const fetchPricesForDate = async (date: Date): Promise<RawPriceEntry[]> => {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
+  const dateStr = `${y}-${m}-${d}`;
+
+  // 1. Try local data folder first (/data/YYYY-MM-DD.json)
   try {
-    const response = await fetch(`${API_BASE}/${y}/${m}-${d}_${AREA}.json`);
-    if (!response.ok) throw new Error("Fetch failed");
-    return await response.json();
+    const localResponse = await fetch(`/data/${dateStr}.json`);
+    if (localResponse.ok) {
+      const data = await localResponse.json();
+      if (Array.isArray(data)) {
+        console.log(`Using local data for ${dateStr}`);
+        return data;
+      }
+    }
   } catch (err) {
-    console.error(`Fetch failed for ${y}-${m}-${d}`);
+    console.log(`Local data not found for ${dateStr}, checking external API...`);
+  }
+
+  // 2. Fallback to ElprisetJustNu API
+  try {
+    const externalResponse = await fetch(`${API_BASE}/${y}/${m}-${d}_${AREA}.json`);
+    if (externalResponse.ok) {
+      const data = await externalResponse.json();
+      if (Array.isArray(data)) {
+        console.log(`Using external API data for ${dateStr}`);
+        return data;
+      }
+    }
+    throw new Error(`Data not found on API for ${dateStr}`);
+  } catch (err) {
+    console.error(`Failed to fetch price data for ${dateStr}:`, err);
     return [];
   }
 };
@@ -36,6 +59,7 @@ const App: React.FC = () => {
     const pricesToday = await fetchPricesForDate(today);
     setDataToday(pricesToday);
 
+    // Only try fetching tomorrow's data if it's afternoon or we need it for recommendations
     if (today.getHours() >= 13) {
       const pricesTomorrow = await fetchPricesForDate(tomorrow);
       setDataTomorrow(pricesTomorrow);
