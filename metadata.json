@@ -1,0 +1,5 @@
+{
+  "name": "EcoCharge Dashboard",
+  "description": "An elegant electricity price dashboard optimized for tablet displays, featuring hourly aggregation, color-coded pricing, and EV charging optimization.",
+  "requestFramePermissions": []
+}
